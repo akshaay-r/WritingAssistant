@@ -2,11 +2,41 @@ from pynput import keyboard
 from pynput.keyboard import Key,Controller
 import pyperclip
 import time
+import httpx
+from string import Template
 
 controller = Controller()
 
+OLLAMA_ENDPOINT = "http://localhost:11434/api/generate"
+OLLAMA_CONFIG={
+    "model": "mistral",
+    "keep_alive" : "5m",
+    "stream" : False
+}
+
+PROMPT_TEMPLATE = Template(
+    """Fix all typos and casing and puncation in this text,but preserve all new line characters:
+     
+     $text
+
+     Return only the corrected text,don't include a preamble.
+           
+    """
+)
+
 def fix_text(text):
-    return text[::-1]
+    prompt = PROMPT_TEMPLATE.substitute(text=text)
+    try :
+        response = httpx.post(OLLAMA_ENDPOINT,
+                            json={"prompt" : prompt,**OLLAMA_CONFIG},
+                            headers={"Content-Type":"application/json"},
+                            timeout=10)
+        if response.status_code !=   200:
+            return None
+        return response.json()["response"].strip()
+    except Exception as e:
+        print("Error : ",e)
+        return text    
 
 def fix_current_line():
     controller.press(Key.ctrl)

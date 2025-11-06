@@ -31,8 +31,9 @@ def fix_text(text):
                             json={"prompt" : prompt,**OLLAMA_CONFIG},
                             headers={"Content-Type":"application/json"},
                             timeout=10)
+        print(response.text)
         if response.status_code !=   200:
-            return None
+            return text
         return response.json()["response"].strip()
     except Exception as e:
         print("Error : ",e)
@@ -46,20 +47,29 @@ def fix_current_line():
     controller.release(Key.ctrl)
     controller.release(Key.shift)
     controller.release(Key.left)
+    fix_selection()
     
 def fix_selection():
     #1.Copy to Clipboard
     with controller.pressed(Key.ctrl):
         controller.tap('c')
+
     #2. get text from Clipboard
-    time.sleep(0.2)
+    time.sleep(0.1)
     text = pyperclip.paste()
-    print(text)
+
     #3. fix the text
+    if not text:
+        return
     fixed_text = fix_text(text)
     print(fixed_text)
+    if not fixed_text:
+        return
+    
     #4. copy back to clipboard
     pyperclip.copy(fixed_text)
+    time.sleep(0.1)
+    
     #5. insert text
     with controller.pressed(Key.ctrl):
         controller.tap('v')
@@ -69,7 +79,6 @@ def on_f9():
 
 def on_f10():
     fix_selection()
-    print("f10 pressed")
 
 with keyboard.GlobalHotKeys({
         '<120>': on_f9,
